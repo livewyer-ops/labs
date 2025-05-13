@@ -1,0 +1,38 @@
+# Fix any fixable errors
+fix: true
+
+# Configure rules
+# Ref. https://github.com/DavidAnson/markdownlint/blob/v0.32.1/README.md#options
+config:
+  # Better styling
+  no-inline-html: false
+  first-line-heading: false
+  no-emphasis-as-heading: false
+
+  # Use text editor soft wrap instead
+  line-length: false
+
+  # We can use consistent headers
+  no-duplicate-heading: false
+
+  # Headings can end with ":"
+  no-trailing-punctuation: false
+
+  # Headings can have any level
+  heading-increment: false
+
+# Ignore files referenced by .gitignore
+gitignore: true
+
+# Define glob expressions to use
+globs:
+  - "**/*.md"
+
+# Disable progress on stdout
+noProgress: true
+
+# Show found files on stdout
+showFound: false
+
+# Disable banner message on stdout
+noBanner: true
