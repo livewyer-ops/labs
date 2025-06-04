@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: openssh
+spec:
+  containers:
+  - name: openssh
+    image: linuxserver/openssh-server
+  nodeName: NODE_NAME

@@ -1,0 +1,14 @@
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: "ubuntu-data-volume"
+spec:
+  source:
+    http:
+      url: "https://cloud-images.ubuntu.com/focal/20210216/focal-server-cloudimg-amd64.img"
+  pvc:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 4Gi

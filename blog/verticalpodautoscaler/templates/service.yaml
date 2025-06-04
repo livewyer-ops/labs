@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: vpa-webhook
+  annotations:
+{{ toYaml .Values.admissionController.service.annotations | indent 4 }}
+  labels:
+    app: {{ template "vpa.name" . }}
+    chart: {{ template "vpa.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  ports:
+  - port: {{ .Values.admissionController.service.port }}
+    targetPort: {{ .Values.admissionController.service.internalPort }}
+  selector:
+    app: {{ template "vpa.name" . }}-admission-controller
+    release: "{{ .Release.Name }}"
+
+---

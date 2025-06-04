@@ -1,0 +1,131 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: helm-test-chaos-reporter
+  namespace: {{ .Release.Namespace }}
+  {{- if eq .Values.chaos.debug false }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-delete-policy": before-hook-creation
+  {{- end }}
+spec:
+  serviceAccountName: chaosresult-reader
+  restartPolicy: Never
+  containers:
+  - name: curl
+    image: gcr.io/livewyer-ops-public/container-curljq:0.0.1
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      function healthy_app? {
+        HEALTH_CHECK_RESULT=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 {{ .Values.service.name }})
+
+        if [[ $HEALTH_CHECK_RESULT -ne 200 ]]
+        then
+          echo "Application failed the health check" > /proc/1/fd/1
+          return false
+        fi
+
+        return true
+      }
+
+      echo "---Time of Execution---" && date > /proc/1/fd/1
+
+      {{- /* PRE-EXPERIMENT Application Health Check .*/}}
+      echo "PRE-EXPERIMENT: Performing app health check" > /proc/1/fd/1
+      APP_HEALTHY=healthy_app?
+      if [[ $APP_HEALTHY == false ]]
+      then
+        echo "Application failed the health check. The chaos experiment will not be run." > /proc/1/fd/1
+        exit 1
+      fi
+
+      echo "PRE-EXPERIMENT: App passed health check" > /proc/1/fd/1
+
+      KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+      URL="https:/kubernetes.default.svc:443/apis/litmuschaos.io/v1alpha1/namespaces/{{ .Release.Namespace }}/chaosengines/{{ .Values.chaos.engine.name }}"
+
+      {{- /* Set chaos engine to active .*/}}
+      result=$(curl -sSk -H "Authorization: Bearer $KUBE_TOKEN" -H "Content-Type: application/json-patch+json" --request PATCH --data '[{"op": "replace", "path": "/spec/engineState", "value": "active"}]' $URL | jq .spec.engineState)
+      echo "Chaos Engine State Post-Patch (1): $result" > /proc/1/fd/1
+
+      {{- /* Give engine time to initialize .*/}}
+      sleep 3
+
+      EXPERIMENT_COMPLETED=false
+      EXPERIMENT_HALTED=false
+      INTERVAL=5
+
+      {{- /* Poll for the engine status .*/}}
+      for i in {1..40}
+      do
+        result=$(curl -sSk -H "Authorization: Bearer $KUBE_TOKEN" $URL | jq .status.engineStatus)
+        echo "($(($i*$INTERVAL)) seconds) Engine Status $result" > /proc/1/fd/1
+
+        if [[ $result == '"stopped"' ]]
+        then
+          EXPERIMENT_HALTED=true
+          break
+        elif [[ $result == '"completed"' ]]
+        then
+          EXPERIMENT_COMPLETED=true
+          break
+        fi
+
+        sleep $INTERVAL
+      done
+
+      if [[ $EXPERIMENT_HALTED == true ]]
+      then
+        echo "The experiment was interrupted" > /proc/1/fd/1
+      elif [[ $EXPERIMENT_COMPLETED == true ]]
+      then
+        echo "The experiment was completed" > /proc/1/fd/1
+
+        {{- /* Check results of chaos experiment(s) */}}
+        NUM_OF_EXPERIMENTS=$(curl -sSk -H "Authorization: Bearer $KUBE_TOKEN" $URL | jq .status.experiments | jq length)
+        echo "Number of experiments: $NUM_OF_EXPERIMENTS" > /proc/1/fd/1
+
+        ALL_PASS=true
+        NUM_FAILED_EXPERIMENTS=0
+
+        for ((i=0;i<$NUM_OF_EXPERIMENTS;i++)); do
+          experiment_name=$(curl -sSk -H "Authorization: Bearer $KUBE_TOKEN" $URL | jq .status.experiments[$i].name)
+          verdict=$(curl -sSk -H "Authorization: Bearer $KUBE_TOKEN" $URL | jq .status.experiments[$i].verdict)
+          echo Experiment $(($i+1)) - $experiment_name Result: $verdict > /proc/1/fd/1
+
+          if [[ $verdict != '"Pass"' ]]
+          then
+            NUM_FAILED_EXPERIMENTS=$(($NUM_FAILED_EXPERIMENTS+1))
+            ALL_PASS=false
+          fi
+        done
+
+        {{- /* Stop chaos engine */}}
+        result=$(curl -sSk -H "Authorization: Bearer $KUBE_TOKEN" -H "Content-Type: application/json-patch+json" --request PATCH --data '[{"op": "replace", "path": "/spec/engineState", "value": "stop"}]' $URL | jq .spec.engineState)
+        echo "Chaos Engine State Post-Patch (2): $result" > /proc/1/fd/1
+
+      else
+        echo "The experiment did not complete after 120 seconds" > /proc/1/fd/1
+      fi
+
+      {{- /* POST-EXPERIMENT Application Health Check .*/}}
+      echo "POST-EXPERIMENT: Performing app health check" > /proc/1/fd/1
+      APP_HEALTHY=healthy_app?
+      if [[ $APP_HEALTHY == false ]]
+      then
+        echo "$NUM_FAILED_EXPERIMENTS experiment(s) failed" > /proc/1/fd/1
+        echo "Application failed the health check after the chaos experiment(s)" > /proc/1/fd/1
+        exit 1
+      fi
+
+      if [[ $ALL_PASS == false ]]
+      then
+        echo "$NUM_FAILED_EXPERIMENTS experiment(s) failed" > /proc/1/fd/1
+        exit 1
+      fi
+
+      echo "POST-EXPERIMENT: All experiments passed and the app has passed the health check" > /proc/1/fd/1
+
+      echo "---Time of Completion---" && date > /proc/1/fd/1
+

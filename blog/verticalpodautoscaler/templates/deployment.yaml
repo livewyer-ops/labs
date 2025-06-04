@@ -1,0 +1,111 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "vpa.fullname" . }}-admission-controller
+  labels:
+    app: {{ template "vpa.name" . }}-admission-controller
+    chart: {{ template "vpa.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: {{ .Values.admissionController.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "vpa.name" . }}-admission-controller
+        chart: {{ template "vpa.chart" . }}
+        release: "{{ .Release.Name }}"
+        heritage: "{{ .Release.Service }}"
+    spec:
+      serviceAccountName: {{ template "vpa.fullname" . }}-admission-controller
+      containers:
+        - name: admissioncontroller
+          image: "{{ .Values.admissionController.image.repository }}:{{ .Values.admissionController.image.tag }}"
+          imagePullPolicy: {{ .Values.admissionController.image.pullPolicy }}
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: tls-certs
+              mountPath: "/etc/tls-certs"
+              readOnly: true
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          ports:
+            - containerPort: {{ .Values.admissionController.service.internalPort }}
+      volumes:
+        - name: tls-certs
+          secret:
+            secretName: {{ if .Values.admissionController.existingTlsSecret }}{{ .Values.admissionController.existingTlsSecret }}{{- else }}vpa-tls-certs{{- end }}
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "vpa.fullname" . }}-recommender
+  labels:
+    app: {{ template "vpa.name" . }}-recommender
+    chart: {{ template "vpa.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: {{ .Values.recommender.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "vpa.name" . }}-recommender
+        chart: {{ template "vpa.chart" . }}
+        release: "{{ .Release.Name }}"
+        heritage: "{{ .Release.Service }}"
+    spec:
+      serviceAccountName: {{ template "vpa.fullname" . }}-recommender
+      containers:
+      - name: recommender
+        image: "{{ .Values.recommender.image.repository }}:{{ .Values.recommender.image.tag }}"
+        imagePullPolicy: {{ .Values.recommender.image.pullPolicy }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        ports:
+        - containerPort: {{ .Values.recommender.internalPort }}
+        command:
+        - ./recommender
+        - --logtostderr={{ .Values.recommender.logtostderr }}
+        - --v={{ .Values.recommender.logLevel }}
+{{- if .Values.prometheus.url }}        
+        - --prometheus-address={{ .Values.prometheus.url }}
+        - --prometheus-cadvisor-job-name={{ .Values.recommender.prometheusCadvisorJobName }}
+        - --storage={{ .Values.recommender.storage }}
+{{- end }}
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "vpa.fullname" . }}-updater
+  labels:
+    app: {{ template "vpa.name" . }}-updater
+    chart: {{ template "vpa.chart" . }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  replicas: {{ .Values.updater.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "vpa.name" . }}-updater
+        chart: {{ template "vpa.chart" . }}
+        release: "{{ .Release.Name }}"
+        heritage: "{{ .Release.Service }}"
+    spec:
+      serviceAccountName: {{ template "vpa.fullname" . }}-updater
+      containers:
+        - name: updater
+          image: "{{ .Values.updater.image.repository }}:{{ .Values.updater.image.tag }}"
+          imagePullPolicy: {{ .Values.updater.image.pullPolicy }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          ports:
+            - containerPort: {{ .Values.updater.internalPort }}

@@ -1,0 +1,109 @@
+# Default values
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+prometheus:
+  url: http://prometheus.default.svc
+
+admissionController:
+  replicaCount: 1
+  image:
+    repository: k8s.gcr.io/vpa-admission-controller
+    tag: 0.4.1
+    pullPolicy: IfNotPresent
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 500Mi
+    requests:
+      cpu: 50m
+      memory: 200Mi
+
+  service:
+    annotations: {}
+    port: 443
+    internalPort: 8000
+  
+  # existingTlsSecret:
+
+  ## Node selector
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+
+  ## Affinity
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  ## Tolerations
+  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  podAnnotations: {}
+
+recommender:
+  replicaCount: 1
+  image:
+    repository: k8s.gcr.io/vpa-recommender
+    tag: 0.4.1
+    pullPolicy: IfNotPresent
+
+  logLevel: 10
+  logtostderr: true
+  prometheusCadvisorJobName: cadvisor
+  storage: prometheus
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 1000Mi
+    requests:
+      cpu: 50m
+      memory: 500Mi
+
+  internalPort: 8080
+
+  ## Node selector
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+
+  ## Affinity
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  ## Tolerations
+  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  podAnnotations: {}
+
+updater:
+  replicaCount: 1
+  image:
+    repository: k8s.gcr.io/vpa-updater
+    tag: 0.4.1
+    pullPolicy: IfNotPresent
+
+  resources:
+    limits:
+      cpu: 200m
+      memory: 1000Mi
+    requests:
+      cpu: 50m
+      memory: 500Mi
+
+  internalPort: 8080
+
+  ## Node selector
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+  nodeSelector: {}
+
+  ## Affinity
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  affinity: {}
+
+  ## Tolerations
+  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  tolerations: []
+
+  podAnnotations: {}

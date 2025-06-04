@@ -1,0 +1,71 @@
+# Default values for demo-chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+podAnnotations: {}
+
+podLabels:
+  app.kubernetes.io/name: nginx
+
+commonLabels:
+  app: "nginx"
+  env: "demo"
+
+deployment:
+  annotations:
+    litmuschaos.io/chaos: "true"
+
+service:
+  name: demo-nginx
+  type: ClusterIP
+  port: 80
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+chaos:
+  enabled: true
+  debug: false
+  serviceAccountName: pod-delete-sa
+  roleName: pod-delete-sa
+  roleBindingName: pod-delete-sa
+  commonLabels:
+    name: pod-delete-sa
+
+  engine:
+    name: nginx-chaos
+    appLabel:
+      key: app
+      value: nginx
+    experiments:
+      - name: pod-delete
+        spec:
+          components:
+            env:
+              # set chaos duration (in sec) as desired
+              - name: TOTAL_CHAOS_DURATION
+                value: '30'
+
+              # set chaos interval (in sec) as desired
+              - name: CHAOS_INTERVAL
+                value: '10'
+
+              # pod failures without '--force' & default terminationGracePeriodSeconds
+              - name: FORCE
+                value: 'false'

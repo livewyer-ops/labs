@@ -1,0 +1,19 @@
+basename: "ubuntuvm"
+replicaCount: 3
+running: true
+
+resources:
+  requests:
+    memory: "1024Mi"
+    cpu: "500m"
+
+dataVolumeTemplates:
+  source:
+    url: "https://cloud-images.ubuntu.com/focal/20210216/focal-server-cloudimg-amd64.img"
+  resources:
+    requests:
+      storage: 4Gi
+
+ssh:
+  publicKey: SSH_PUBLIC_KEY
+

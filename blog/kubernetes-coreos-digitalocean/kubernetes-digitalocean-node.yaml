@@ -1,0 +1,425 @@
+#cloud-config
+
+write-files:
+  - path: /etc/confd/conf.d/controller-manager.toml
+    permissions: 0644
+    owner: root
+    content: |
+      [template]
+      src = "controller-manager.template"
+      dest = "/etc/systemd/system/controller-manager.service"
+      keys = [
+        "/bootstrap/node-01",
+        "/bootstrap/node-02",
+        "/bootstrap/node-03"
+      ]
+      reload_cmd = "systemctl daemon-reload && systemctl restart controller-manager"
+
+  - path: /etc/confd/conf.d/kubelet.toml
+    permissions: 0644
+    owner: root
+    content: |
+      [template]
+      src = "kubelet.template"
+      dest = "/etc/systemd/system/kubelet.service"
+      keys = [
+        "/bootstrap/master"
+      ]
+      reload_cmd = "systemctl daemon-reload && systemctl restart kubelet"
+
+  - path: /etc/confd/conf.d/proxy.toml
+    permissions: 0644
+    owner: root
+    content: |
+      [template]
+      src = "proxy.template"
+      dest = "/etc/systemd/system/proxy.service"
+      keys = [
+        "/bootstrap/master"
+      ]
+      reload_cmd = "systemctl daemon-reload && systemctl restart proxy"
+
+  - path: /etc/confd/templates/kubelet.template
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      After=etcd2.service
+      After=download-kubernetes.service
+      ConditionFileIsExecutable=/opt/kubernetes/server/bin/kubelet
+      Description=Kubernetes Kubelet
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Wants=etcd2.service
+      Wants=download-kubernetes.service
+      Requires=bootstrap-address-information.service
+
+      [Service]
+      ExecStart=/opt/kubernetes/server/bin/kubelet \
+          --address=0.0.0.0 \
+          --port=10250 \
+          --api_servers={{getv "/bootstrap/master"}}:8080 \
+          --hostname_override=$private_ipv4 \
+          --allow_privileged=true \
+          --host-network-sources=* \
+          --logtostderr=true
+      Restart=always
+      RestartSec=10
+
+      [Install]
+      WantedBy=kubernetes-minion.target
+
+  - path: /etc/confd/templates/proxy.template
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      After=etcd2.service
+      After=download-kubernetes.service
+      ConditionFileIsExecutable=/opt/kubernetes/server/bin/kube-proxy
+      Description=Kubernetes Proxy
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Wants=etcd2.service
+      Wants=download-kubernetes.service
+      Requires=bootstrap-address-information.service
+
+      [Service]
+      ExecStart=/opt/kubernetes/server/bin/kube-proxy --master=http://{{getv "/bootstrap/master"}}:7080 --logtostderr=true
+      Restart=always
+      RestartSec=10
+
+      [Install]
+      WantedBy=kubernetes-minion.target
+
+  - path: /etc/confd/templates/controller-manager.template
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      After=etcd2.service
+      After=download-kubernetes.service
+      After=apiserver.service
+      ConditionFileIsExecutable=/opt/kubernetes/server/bin/kube-controller-manager
+      Description=Kubernetes Controller Manager
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Wants=apiserver.service
+      Wants=etcd2.service
+      Wants=download-kubernetes.service
+      ConditionHost=master
+      Requires=bootstrap-address-information.service
+
+      [Service]
+      ExecStartPre=/bin/bash -x -c 'result=`wget --retry-connrefused --tries=5 127.0.0.1:8080/healthz -O -` && test -n "$${result}" && test "$${result}" = ok'
+      ExecStart=/opt/kubernetes/server/bin/kube-controller-manager \
+          --machines={{getv "/bootstrap/node-01"}},{{getv "/bootstrap/node-02"}},{{getv "/bootstrap/node-03"}} \
+          --cloud_provider=vagrant \
+          --master=127.0.0.1:8080 \
+          --logtostderr=true
+      Restart=always
+      RestartSec=10
+
+      [Install]
+      WantedBy=kubernetes-master.target
+
+coreos:
+  update:
+    group: alpha
+    reboot-strategy: 'off'
+  etcd2:
+    proxy: "on"
+    listen-client-urls: "http://0.0.0.0:2379,http://0.0.0.0:4001"
+    listen-peer-urls: http://$private_ipv4:2380,http://$private_ipv4:7001
+    initial-cluster: "master=http://master.example.com:2380"
+    initial-cluster-state: "existing"
+  flannel:
+    interface: $private_ipv4
+  units:
+    - name: etcd2.service
+      enable: true
+      command: start
+      content: | 
+        [Unit]
+        Description=etcd2
+        Conflicts=etcd.service
+        [Service]
+        User=etcd
+        Environment=ETCD_DATA_DIR=/var/lib/etcd2
+        Environment=ETCD_NAME=%H
+        ExecStart=/usr/bin/etcd2
+        Restart=always
+        RestartSec=10s
+        LimitNOFILE=40000
+
+    - name: rpc-statd.service
+      command: start
+
+    - name: flanneld.service
+      drop-ins:
+        - name: 50-network-config.conf
+          content: |
+            [Service]
+            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{ "Network": "192.168.0.0/16" }'
+      command: start
+
+    - name: docker.service
+      command: restart
+      content: |
+        [Unit]
+        Description=Docker Application Container Engine
+        Documentation=http://docs.docker.io
+        After=docker.socket early-docker.target network.target flanneld.service
+        Requires=flanneld.service
+        [Service]
+        Environment=TMPDIR=/var/tmp
+        EnvironmentFile=/run/flannel_docker_opts.env
+        MountFlags=slave
+        LimitNOFILE=1048576
+        LimitNPROC=1048576
+        ExecStart=/usr/lib/coreos/dockerd --daemon --host=fd://  $DOCKER_OPTS $DOCKER_OPT_BIP $DOCKER_OPT_MTU $DOCKER_OPT_IPMASQ
+        Restart=always
+
+        [Install]
+        WantedBy=multi-user.target
+
+
+    - name: rpc-statd.service
+      command: start
+
+    - name: kubernetes-master.target
+      enable: true
+      content: |
+        [Unit]
+        Description=Kubernetes Cluster Master
+        Documentation=http://kubernetes.io/
+        RefuseManualStart=no
+        After=flanneld.service
+        Requires=flanneld.service
+        After=bootstrap-address-information.service
+        ConditionHost=master
+        Wants=apiserver.service
+        Wants=scheduler.service
+        Wants=controller-manager.service
+        Requires=bootstrap-address-information.service
+
+        [Install]
+        WantedBy=multi-user.target
+
+    - name: kubernetes-minion.target
+      enable: true
+      content: |
+        [Unit]
+        Description=Kubernetes Cluster Minion
+        Documentation=http://kubernetes.io/
+        RefuseManualStart=no
+        ConditionHost!=master
+        After=bootstrap-address-information.service
+        After=flanneld.service
+        Requires=flanneld.service
+        Wants=proxy.service
+        Wants=kubelet.service
+        Requires=bootstrap-address-information.service
+
+        [Install]
+        WantedBy=multi-user.target
+
+    ## based on: https://github.com/kelseyhightower/kubernetes-coreos/blob/e16f8ac/configs/master.yml
+    - name: download-kubernetes.service
+      enable: true
+      content: |
+        [Unit]
+        After=network-online.target
+        Before=apiserver.service
+        Before=controller-manager.service
+        Before=kubelet.service
+        Before=proxy.service
+        Description=Download Kubernetes Binaries
+        Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+        Requires=network-online.target
+
+        [Service]
+        Environment=KUBE_RELEASE_TARBALL=http://dl.lwy.io/3rdparty/kubernetes.tar.gz
+        ExecStartPre=/bin/mkdir -p /opt/bin/
+        ExecStart=/bin/bash -c "rm -rf /opt/kubernetes; rm -f /opt/bin/kubectl; curl -s -L $KUBE_RELEASE_TARBALL | tar xzv -C /tmp/"
+        ExecStart=/bin/tar xzvf /tmp/kubernetes/server/kubernetes-server-linux-amd64.tar.gz -C /opt
+        ExecStartPost=/bin/ln -s /opt/kubernetes/server/bin/kubectl /opt/bin/
+        ExecStartPost=/bin/rm -rf /tmp/kubernetes
+        ExecStartPost=/usr/bin/chmod -R a+r /opt/kubernetes
+        ExecStartPost=/usr/bin/chmod -R a+x /opt/kubernetes
+        RemainAfterExit=yes
+        Type=oneshot
+
+        [Install]
+        WantedBy=kubernetes-master.target
+        WantedBy=kubernetes-minion.target
+
+    - name: apiserver.service
+      enable: true
+      content: |
+        [Unit]
+        After=etcd2.service
+        After=download-kubernetes.service
+        Before=controller-manager.service
+        Before=scheduler.service
+        ConditionFileIsExecutable=/opt/kubernetes/server/bin/kube-apiserver
+        Description=Kubernetes API Server
+        Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+        Wants=etcd2.service
+        Wants=download-kubernetes.service
+        ConditionHost=master
+        Requires=bootstrap-address-information.service
+
+        [Service]
+        ExecStart=/opt/kubernetes/server/bin/kube-apiserver \
+            --insecure_bind_address=0.0.0.0 \
+            --insecure_port=8080 \
+            --etcd_servers=http://127.0.0.1:4001 \
+            --portal_net=10.0.0.0/16 \
+            --cloud_provider=vagrant \
+            --allow_privileged=true \
+            --logtostderr=true --v=3
+        Restart=always
+        RestartSec=10
+
+        [Install]
+        WantedBy=kubernetes-master.target
+
+    - name: scheduler.service
+      enable: true
+      content: |
+        [Unit]
+        After=apiserver.service
+        After=download-kubernetes.service
+        ConditionFileIsExecutable=/opt/kubernetes/server/bin/kube-scheduler
+        Description=Kubernetes Scheduler
+        Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+        Wants=apiserver.service
+        ConditionHost=master
+        Requires=bootstrap-address-information.service
+
+        [Service]
+        ExecStart=/opt/kubernetes/server/bin/kube-scheduler \
+            --logtostderr=true \
+            --master=127.0.0.1:8080
+        Restart=always
+        RestartSec=10
+
+        [Install]
+        WantedBy=kubernetes-master.target
+
+    - name: controller-manager.service
+      enable: true
+      content: |
+        [Unit]
+        After=etcd2.service
+        After=download-kubernetes.service
+        After=apiserver.service
+        ConditionFileIsExecutable=/opt/kubernetes/server/bin/kube-controller-manager
+        Description=Kubernetes Controller Manager
+        Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+        Wants=apiserver.service
+        Wants=etcd2.service
+        Wants=download-kubernetes.service
+        ConditionHost=master
+        Requires=bootstrap-address-information.service
+
+        [Service]
+        ExecStartPre=/bin/bash -x -c 'result=`wget --retry-connrefused --tries=5 127.0.0.1:8080/healthz -O -` && test -n "$${result}" && test "$${result}" = ok'
+        ExecStart=/opt/kubernetes/server/bin/kube-controller-manager \
+            --machines=$private_ipv4 \
+            --cloud_provider=vagrant \
+            --master=127.0.0.1:8080 \
+            --logtostderr=true
+        Restart=always
+        RestartSec=10
+
+        [Install]
+        WantedBy=kubernetes-master.target
+
+    - name: kubelet.service
+      content: |
+        [Unit]
+        After=etcd2.service
+        After=download-kubernetes.service
+        ConditionFileIsExecutable=/opt/kubernetes/server/bin/kubelet
+        Description=Kubernetes Kubelet
+        Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+        Wants=etcd2.service
+        Wants=download-kubernetes.service
+        Requires=bootstrap-address-information.service
+
+        [Service]
+        ExecStart=/opt/kubernetes/server/bin/kubelet \
+            --address=0.0.0.0 \
+            --port=10250 \
+            --api_servers=172.17.8.101:8080 \
+            --hostname_override=$private_ipv4 \
+            --allow_privileged=true \
+            --host-network-sources=* \
+            --logtostderr=true
+        Restart=always
+        RestartSec=10
+
+        [Install]
+        WantedBy=kubernetes-minion.target
+
+    - name: proxy.service
+      content: |
+        [Unit]
+        After=etcd2.service
+        After=download-kubernetes.service
+        ConditionFileIsExecutable=/opt/kubernetes/server/bin/kube-proxy
+        Description=Kubernetes Proxy
+        Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+        Wants=etcd2.service
+        Wants=download-kubernetes.service
+        Requires=bootstrap-address-information.service
+
+        [Service]
+        ExecStart=/opt/kubernetes/server/bin/kube-proxy --master=http://172.17.8.101:7080 --logtostderr=true
+        Restart=always
+        RestartSec=10
+
+        [Install]
+        WantedBy=kubernetes-minion.target
+
+    - name: install-confd.service
+      enable: true
+      command: start
+      content: |
+        [Unit]
+        After=etcd2.service
+        After=network-online.target
+        Requires=network-online.target
+
+        [Service]
+        ExecStartPre=/usr/bin/bash -c "/usr/bin/mkdir -p /opt/bin && /usr/bin/wget -O /opt/bin/confd http://dl.lwy.io/tools/confd"
+        ExecStart=/usr/bin/chmod +x /opt/bin/confd
+        RemainAfterExit=yes
+        Type=oneshot
+
+    - name: bootstrap-address-information.service
+      enable: true
+      command: start
+      content: |
+        [Unit]
+        After=install-confd.service
+        After=etcd2.service
+        Requires=etcd2.service
+
+        [Service]
+        ExecStart=/bin/bash -c "while true; do /usr/bin/etcdctl set /bootstrap/`/usr/bin/hostname` `/usr/bin/curl -s http://169.254.169.254/metadata/v1/interfaces/private/0/ipv4/address` && break; sleep 10; done;"
+        RemainAfterExit=yes
+        Type=oneshot
+
+    - name: confd.service
+      enable: true
+      command: start
+      content: |
+        [Unit]
+        After=download-kubernetes.service
+        After=bootstrap-address-information.service
+        Requires=download-kubernetes.service
+        Requires=bootstrap-address-information.service
+
+        [Service]
+        ExecStart=/opt/bin/confd -watch
+        Restart=always

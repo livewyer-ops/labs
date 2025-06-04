@@ -1,0 +1,20 @@
+nginx_proc = Process(
+    name="nginx_process",
+    cmdline="nginx")
+
+consul_template_proc = Process(
+    name="consul_template",
+    cmdline="consul-template -consul=172.17.42.1:8500 -template \"/nginx.template:/etc/nginx/nginx.conf:nginx -s reload\"", max_failures=10)
+
+nginx_task = Task(
+  name = 'nginx task',
+  processes = [nginx_proc, consul_template_proc],
+  resources = Resources(cpu = 0.1, ram = 32*MB, disk=8*MB))
+
+jobs = [
+  Service(cluster = 'devcluster',
+          environment = 'devel',
+          role = 'web-server',
+          name = 'nginx',
+          task = nginx_task,
+          container = Container(docker = Docker(image = 'registry.livewyer.com/nginx:2015-04-10-1541')))]

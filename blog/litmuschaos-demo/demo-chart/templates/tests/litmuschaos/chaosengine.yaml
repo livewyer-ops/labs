@@ -1,0 +1,23 @@
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: {{ .Values.chaos.engine.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  appinfo:
+    appns: '{{ .Release.Namespace }}'
+    applabel: '{{ .Values.chaos.engine.appLabel.key }}={{ .Values.chaos.engine.appLabel.value }}'
+    appkind: 'deployment'
+  # It can be true/false
+  annotationCheck: 'true'
+  # It can be active/stop
+  engineState: 'stop'
+  #ex. values: ns1:name=percona,ns2:run=nginx
+  auxiliaryAppInfo: ''
+  chaosServiceAccount: {{ .Values.chaos.serviceAccountName }}
+  monitoring: false
+  # It can be delete/retain
+  jobCleanUpPolicy: 'delete'
+  experiments:
+    {{- toYaml .Values.chaos.engine.experiments | nindent 4 }}
+

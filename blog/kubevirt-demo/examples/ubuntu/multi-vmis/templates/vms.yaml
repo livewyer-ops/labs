@@ -1,0 +1,69 @@
+{{ $values := $.Values }}
+{{ $replicaCount := .Values.replicaCount | int }}
+
+{{ range $i, $e := until $replicaCount }}
+
+{{ $counter := add $i 1}}
+
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: "{{ $values.basename }}-{{ $counter }}"
+spec:
+  running: {{ $values.running }}
+  template:
+    metadata:
+      labels:
+        kubevirt.io/size: small
+        kubevirt.io/domain: "{{ $values.basename }}"
+    spec:
+      domain:
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: containerdisk
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+          interfaces:
+          - name: default
+            bridge: {}
+        machine:
+          type: ""
+        resources:
+          requests:
+            memory: {{ $values.resources.requests.memory }}
+            cpu: {{ $values.resources.requests.cpu }}
+      networks:
+      - name: default
+        pod: {}
+      volumes:
+      - name: containerdisk
+        dataVolume:
+          name: {{ $values.basename }}-data-volume-{{ $counter }}
+      - name: cloudinitdisk
+        cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            password: passwd
+            chpasswd: { expire: False }
+            ssh_pwauth: True
+            ssh_authorized_keys:
+            - ssh-rsa {{ $values.ssh.publicKey }}
+  dataVolumeTemplates:
+  - metadata:
+      name: {{ $values.basename }}-data-volume-{{ $counter }}
+    spec:
+      source:
+        http:
+          url: {{ $values.dataVolumeTemplates.source.url }}
+      pvc:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ $values.dataVolumeTemplates.resources.requests.storage }}
+
+---
+{{ end }}
