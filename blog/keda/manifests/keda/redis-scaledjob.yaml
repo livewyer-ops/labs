@@ -1,0 +1,31 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: scale-job
+spec:
+  jobTargetRef:
+    parallelism: 1
+    completions: 1
+    activeDeadlineSeconds: 30
+    backoffLimit: 6
+    template:
+      spec:
+        containers:
+          - image: alpine:3.13.5
+            name: alpine
+            command: ['echo', 'hello world']
+        restartPolicy: Never
+  pollingInterval: 3
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  maxReplicaCount: 10
+  scalingStrategy:
+    strategy: "accurate"
+  triggers:
+  - type: redis
+    metadata:
+      address: redis.redis.svc.cluster.local:6379
+      listName: myotherlist
+      listLength: "1"
+    authenticationRef:
+      name: keda-trigger-auth-redis-secret

@@ -3,7 +3,19 @@
 
 **Table of Contents**
 
+- [Blog](#blog)
+  - [KEDA series](#keda-series)
 - [Contributing](#contributing)
+
+## Blog
+
+### KEDA series
+
+The KEDA blog series introduces the CNCF project Kubernetes Event-driven Autoscaling (KEDA), a tool built on top of the Kubernetes Horizontal Pod Autoscaler (HPA) without replacing it, and explains how you can get started using KEDA.
+
+The link to the first blog post in the series is https://livewyer.io/blog/introducing-kubernetes-event-driven-autoscaling-keda
+
+The [blog/keda](./blog/keda/) directory in this repository contains the instructions for re-producing the demos described in the KEDA blog series.
 
 ## Contributing
 

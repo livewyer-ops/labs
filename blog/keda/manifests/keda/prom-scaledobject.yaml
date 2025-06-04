@@ -1,0 +1,34 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: scale-podinfo
+spec:
+  scaleTargetRef:
+    apiVersion:    apps/v1
+    kind:          Deployment
+    name:          podinfo
+  pollingInterval: 3
+  cooldownPeriod:  30
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 30
+          policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 3
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+          - type: Pods
+            value: 1
+            periodSeconds: 3
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://<prometheus-host>:9090
+      query: sum(increase(http_requests_total{namespace="podinfo", container="podinfo", status="200"}[1m]))
+      threshold: '30'

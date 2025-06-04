@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: redis
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - image: redis:7.4.2
+          name: redis
+          ports:
+            - name: redis
+              containerPort: 6379
+          args: ["--requirepass", "$(REDIS_PASS)"]
+          env:
+          - name: REDIS_PASS
+            valueFrom:
+              secretKeyRef:
+                name: redis
+                key: REDIS_PASS
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  ports:
+    - port: 6379
+      targetPort: redis
+  selector:
+    app: redis
+---
+apiVersion: v1
+data:
+  REDIS_PASS: bXlwYXNzd29yZA==
+kind: Secret
+metadata:
+  name: redis
+type: Opaque
