@@ -5,6 +5,10 @@ At [LiveWyer](https://livewyer.io), we believe that solving complex challenges s
 
 **Table of Contents**
 
+- [Contributions](#contributions)
+  - [CNOE Azure](#cnoe-azure)
+  - [CNOE GCP](#cnoe-gcp)
+  - [Crossplane Piraeus](#crossplane-piraeus)
 - [livewyer.io Blog posts](#livewyerio-blog-posts)
   - [KEDA series](#keda-series)
   - [Istio vs Linkerd vs Cilium](#istio-vs-linkerd-vs-cilium)
@@ -16,6 +20,26 @@ At [LiveWyer](https://livewyer.io), we believe that solving complex challenges s
   - [Docker and Apache Aurora](#docker-and-apache-aurora)
   - [Mesos in Docker on CoreOS](#mesos-in-docker-on-coreos)
 - [Contributing](#contributing)
+
+## Contributions
+
+### CNOE Azure
+
+A reference implementation of Cloud Native Operational Excellence and its toolings on Azure
+
+[[Code]](https://github.com/livewyer-ops/cnoe-reference-implementation-azure)
+
+### CNOE GCP
+
+A reference implementation of Cloud Native Operational Excellence and its toolings on Google Compute Cloud
+
+[[Code]](https://github.com/livewyer-ops/cnoe-reference-implementation-gcp)
+
+### Crossplane Piraeus
+
+Crossplane Composite Resource Definitions (XRDs) package for Piraeus / Linbit Datastore on Kubernetes
+
+[[Code]](https://github.com/livewyer-ops/crossplane-configuration-piraeus)
 
 ## livewyer.io Blog posts
 
