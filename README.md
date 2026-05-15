@@ -53,7 +53,7 @@ Crossplane Composite Resource Definitions (XRDs) package for Piraeus / Linbit Da
 
 ## livewyer.io Tutorial Series
 
-Our tutorial series are in-depth, multi-part guides covering key Kubernetes topics. Each series walks through concepts, configuration, and hands-on examples, from foundational principles through to production-ready implementation patterns. The full index is available at [livewyer.io/tutorials](https://livewyer.io/tutorials/).
+Our tutorial series are in-depth, multi-part guides covering key topics in the Cloud Native landscape. Each series walks through concepts, configuration, and hands-on examples, from foundational principles through to production-ready implementation patterns. They are written to remain relevant over time and are periodically reviewed to reflect changes in the tools, projects, and practices they cover. The full index is available at [livewyer.io/tutorials](https://livewyer.io/tutorials/).
 
 ### Kubernetes HPA
 
