@@ -8,14 +8,18 @@ At [LiveWyer](https://livewyer.io), we believe that solving complex challenges s
 - [Contributions](#contributions)
   - [CNOE Azure](#cnoe-azure)
   - [CNOE GCP](#cnoe-gcp)
+  - [CAIPE](#caipe)
   - [Crossplane Piraeus](#crossplane-piraeus)
-- [livewyer.io Blog posts](#livewyerio-blog-posts)
+- [livewyer.io Tutorial Series](#livewyerio-tutorial-series)
+  - [Kubernetes HPA](#kubernetes-hpa)
   - [KEDA series](#keda-series)
+  - [Kubernetes Vertical Pod Autoscaler](#kubernetes-vertical-pod-autoscaler)
+  - [Kubernetes Autoscaling with Datadog](#kubernetes-autoscaling-with-datadog)
+- [livewyer.io Blog posts](#livewyerio-blog-posts)
   - [Istio vs Linkerd vs Cilium](#istio-vs-linkerd-vs-cilium)
   - [Is Istio Ambient worth it?](#is-istio-ambient-worth-it)
   - [LitmusChaos](#litmuschaos)
   - [KubeVirt](#kubevirt)
-  - [Kubernetes Vertical Pod Autoscaler](#kubernetes-vertical-pod-autoscaler)
   - [Kubernetes on DigitalOcean](#kubernetes-on-digitalocean)
   - [Docker and Apache Aurora](#docker-and-apache-aurora)
   - [Mesos in Docker on CoreOS](#mesos-in-docker-on-coreos)
@@ -27,13 +31,19 @@ At [LiveWyer](https://livewyer.io), we believe that solving complex challenges s
 
 A reference implementation of Cloud Native Operational Excellence and its toolings on Azure
 
-[[Code]](https://github.com/livewyer-ops/cnoe-reference-implementation-azure)
+[[Code]](https://github.com/cnoe-io/reference-implementation-azure)
 
 ### CNOE GCP
 
-A reference implementation of Cloud Native Operational Excellence and its toolings on Google Compute Cloud
+A reference implementation of Cloud Native Operational Excellence and its toolings on Google Cloud
 
-[[Code]](https://github.com/livewyer-ops/cnoe-reference-implementation-gcp)
+[[Code]](https://github.com/cnoe-io/reference-implementation-google)
+
+### CAIPE
+
+Contributing to CAIPE (Community AI Platform Engineering), an open source project building multi-agent systems for AI-assisted platform engineering workflows.
+
+[[Code]](https://github.com/caipe-io/ai-platform-engineering)
 
 ### Crossplane Piraeus
 
@@ -41,15 +51,37 @@ Crossplane Composite Resource Definitions (XRDs) package for Piraeus / Linbit Da
 
 [[Code]](https://github.com/livewyer-ops/crossplane-configuration-piraeus)
 
-## livewyer.io Blog posts
+## livewyer.io Tutorial Series
 
-These posts are carefully curated to provide practical examples and insights into the topics we explored. Whether you're looking for inspiration, learning, or contributing, this list serves as a hub for developers to dive deeper into the ideas and technologies covered in our writings.
+Our tutorial series are in-depth, multi-part guides covering key topics in the Cloud Native landscape. Each series walks through concepts, configuration, and hands-on examples, from foundational principles through to production-ready implementation patterns. They are written to remain relevant over time and are periodically reviewed to reflect changes in the tools, projects, and practices they cover. The full index is available at [livewyer.io/tutorials](https://livewyer.io/tutorials/).
+
+### Kubernetes HPA
+
+A four-part series introducing Horizontal Pod Autoscaling in Kubernetes, covering built-in CPU / memory metrics, custom and external metrics via Metrics Adapters, and scaling with Prometheus using the Prometheus Adapter.
+
+[[Blog 1]](https://livewyer.io/blog/introduction-to-horizontal-pod-autoscaling-in-kubernetes/) | [[Blog 2]](https://livewyer.io/blog/how-to-use-custom-external-metrics-for-kubernetes-hpa/) | [[Blog 3]](https://livewyer.io/blog/set-up-kubernetes-scaling-via-prometheus-custom-metrics/) | [[Blog 4]](https://livewyer.io/blog/leveraging-kubernetes-hpa-and-prometheus-adapter/)
 
 ### KEDA series
 
-The KEDA blog series introduces the CNCF project Kubernetes Event-driven Autoscaling (KEDA), a tool built on top of the Kubernetes Horizontal Pod Autoscaler (HPA) without replacing it, and explains how you can get started using KEDA.
+A four-part series introducing the CNCF project Kubernetes Event-driven Autoscaling (KEDA), a tool built on top of the Kubernetes Horizontal Pod Autoscaler (HPA) without replacing it. The series covers KEDA concepts and installation, scaling workloads with the Prometheus scaler, and autoscaling jobs with the Redis List scaler.
 
-[[Blog]](https://livewyer.io/blog/introducing-kubernetes-event-driven-autoscaling-keda/) | [[Code]](./blog/keda/)
+[[Blog 1]](https://livewyer.io/blog/introducing-kubernetes-event-driven-autoscaling-keda/) | [[Blog 2]](https://livewyer.io/blog/getting-started-with-autoscaling-in-kubernetes-with-keda/) | [[Blog 3]](https://livewyer.io/blog/autoscaling-workloads-with-keda-and-the-prometheus-scaler/) | [[Blog 4]](https://livewyer.io/blog/autoscaling-jobs-with-kedas-redis-list-scaler/) | [[Code]](./blog/keda/)
+
+### Kubernetes Vertical Pod Autoscaler
+
+A four-part series covering Kubernetes Vertical Pod Autoscaling from first principles through to production deployment. The series explains why manual resource allocation falls short, performs a deep dive into the VPA Recommender, Updater, and Admission Controller components, covers safe production rollout strategies, and concludes with advanced configuration patterns and ecosystem tooling.
+
+[[Blog 1]](https://livewyer.io/blog/understanding-kubernetes-vpa-why-manual-resource-allocation-is-costing-you-thousands/) | [[Blog 2]](https://livewyer.io/blog/vpa-component-deep-dive-how-kubernetes-vertical-pod-autoscaler-works/) | [[Blog 3]](https://livewyer.io/blog/vpa-production-deployment-avoiding-pitfalls-for-safe-and-effective-scaling/) | [[Blog 4]](https://livewyer.io/blog/advanced-vpa-implementation-production-patterns-ecosystem-tools-and-real-world-configuration/)
+
+### Kubernetes Autoscaling with Datadog
+
+A three-part series on scaling Kubernetes workloads with Datadog metrics. The series covers getting started with the Datadog Cluster Agent and HPA, scaling with Datadog external metrics, and consolidating autoscaling with the DatadogPodAutoscaler CRD.
+
+[[Blog 1]](https://livewyer.io/blog/kubernetes-autoscaling-getting-started-with-datadog/) | [[Blog 2]](https://livewyer.io/blog/kubernetes-autoscaling-with-datadog-external-metrics/) | [[Blog 3]](https://livewyer.io/blog/kubernetes-autoscaling-using-the-datadogpodautoscaler/)
+
+## livewyer.io Blog posts
+
+These posts are carefully curated to provide practical examples and insights into the topics we explored. Whether you're looking for inspiration, learning, or contributing, this list serves as a hub for developers to dive deeper into the ideas and technologies covered in our writings.
 
 ### Istio vs Linkerd vs Cilium
 
@@ -74,12 +106,6 @@ The KEDA blog series introduces the CNCF project Kubernetes Event-driven Autosca
 (2021) Learn how KubeVirt enables Kubernetes clusters to run virtualised workloads within Kubernetes itself.
 
 [[Blog]](https://livewyer.io/blog/kubevirt-running-kubernetes-clusters-inside-kubernetes/) | [[Code]](./blog/kubevirt-demo/)
-
-### Kubernetes Vertical Pod Autoscaler
-
-(2019) Discover how vertical pod autoscaling enhances Kubernetes resource efficiency and workload management.
-
-[[Blog]](https://livewyer.io/blog/vertical-pod-autoscaling-in-kubernetes/) | [[Code]](./blog/verticalpodautoscaler/)
 
 ### Kubernetes on DigitalOcean
 
@@ -121,4 +147,4 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
   </a>
 </p>
 
-Copyright © 2012-2025 LiveWyer, Licensed under the `MIT` [License](LICENSE).
+Copyright © 2012-2026 LiveWyer, Licensed under the `MIT` [License](LICENSE).
