@@ -8,7 +8,7 @@ At [LiveWyer](https://livewyer.io), we believe that solving complex challenges s
 - [Contributions](#contributions)
   - [CNOE Azure](#cnoe-azure)
   - [CNOE GCP](#cnoe-gcp)
-  - [CNOE AI](#cnoe-ai)
+  - [CAIPE](#caipe)
   - [Crossplane Piraeus](#crossplane-piraeus)
 - [livewyer.io Tutorial Series](#livewyerio-tutorial-series)
   - [Kubernetes HPA](#kubernetes-hpa)
@@ -31,19 +31,19 @@ At [LiveWyer](https://livewyer.io), we believe that solving complex challenges s
 
 A reference implementation of Cloud Native Operational Excellence and its toolings on Azure
 
-[[Code]](https://github.com/livewyer-ops/cnoe-reference-implementation-azure)
+[[Code]](https://github.com/cnoe-io/reference-implementation-azure)
 
 ### CNOE GCP
 
-A reference implementation of Cloud Native Operational Excellence and its toolings on Google Compute Cloud
+A reference implementation of Cloud Native Operational Excellence and its toolings on Google Cloud
 
-[[Code]](https://github.com/livewyer-ops/cnoe-reference-implementation-gcp)
+[[Code]](https://github.com/cnoe-io/reference-implementation-google)
 
-### CNOE AI
+### CAIPE
 
 Contributing to CAIPE (Community AI Platform Engineering), an open source project building multi-agent systems for AI-assisted platform engineering workflows.
 
-[[Code]](https://github.com/cnoe-io/ai-platform-engineering)
+[[Code]](https://github.com/caipe-io/ai-platform-engineering)
 
 ### Crossplane Piraeus
 
@@ -147,4 +147,4 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
   </a>
 </p>
 
-Copyright © 2012-2025 LiveWyer, Licensed under the `MIT` [License](LICENSE).
+Copyright © 2012-2026 LiveWyer, Licensed under the `MIT` [License](LICENSE).
