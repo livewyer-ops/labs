@@ -1,0 +1,89 @@
+# Stands in for an external provider such as Databricks. It answers every
+# chat completion and logs the request body, so a test can see exactly what
+# left the cluster.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-provider
+data:
+  server.py: |
+    import json, sys, time
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    class H(BaseHTTPRequestHandler):
+        def do_POST(self):
+            body = self.rfile.read(int(self.headers.get("content-length", 0)))
+            print(json.dumps({"path": self.path, "tenant": self.headers.get("x-tenant"),
+                              "body": body.decode(errors="replace")}), flush=True)
+            req = json.loads(body or b"{}")
+            out = {"id": "mock-%d" % time.time_ns(), "object": "chat.completion",
+                   "created": int(time.time()), "model": req.get("model", "mock"),
+                   "choices": [{"index": 0, "finish_reason": "stop",
+                                "message": {"role": "assistant", "content": "served by mock-provider"}}],
+                   "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2}}
+            data = json.dumps(out).encode()
+            self.send_response(200)
+            self.send_header("content-type", "application/json")
+            self.send_header("content-length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_GET(self):
+            self.send_response(200); self.end_headers(); self.wfile.write(b"ok")
+
+        def log_message(self, *a):
+            pass
+
+    HTTPServer(("0.0.0.0", 8080), H).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-provider
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: mock-provider }
+  template:
+    metadata:
+      labels: { app: mock-provider }
+    spec:
+      containers:
+        - name: server
+          image: python:3.13-slim
+          command: ["python", "-u", "/app/server.py"]
+          ports: [{ containerPort: 8080, name: http }]
+          volumeMounts: [{ name: app, mountPath: /app }]
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+      volumes:
+        - name: app
+          configMap: { name: mock-provider }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-provider
+spec:
+  selector: { app: mock-provider }
+  ports: [{ name: http, port: 8080, targetPort: 8080 }]
+---
+apiVersion: gateway.linkerd.io/v1alpha1
+kind: GatewayBackend
+metadata:
+  name: mock-provider
+spec:
+  baseURL: http://mock-provider.{{ .Release.Namespace }}.svc.cluster.local:8080
+---
+apiVersion: kinference.buoyant.io/v1alpha1
+kind: InferenceProvider
+metadata:
+  name: mock-provider
+spec:
+  backendRef:
+    name: mock-provider
+  api: OpenAI
+  models:
+    - name: {{ .Values.model }}
+      aliases: [chat]
+      contextWindow: 32768

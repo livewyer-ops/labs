@@ -1,0 +1,11 @@
+# Three vLLM workers, one per A10G GPU node in clusters/eks.yaml.
+workers: gpu
+model: Qwen/Qwen3-8B-FP8
+replicas: 3
+gpuNodeSelector: { pool: gpu }
+# The vLLM release Buoyant's benchmark used.
+gpuImage: vllm/vllm-openai:v0.31.0
+gpuArgs:
+  - --max-model-len=16384
+  - --gpu-memory-utilization=0.90
+  - --max-num-seqs=64

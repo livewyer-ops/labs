@@ -1,0 +1,21 @@
+# The launch example with one line changed: a request may leave the cluster
+# only when it carries a tag saying it may. With no classifier setting tags,
+# nothing leaves.
+apiVersion: kinference.buoyant.io/v1alpha1
+kind: InferencePolicy
+metadata:
+  name: active
+spec:
+  rules:
+  - name: serve
+    route:
+      exclude:
+      - name: pii-never-leaves-cluster
+        if:   { tag: { not: pii-cleared } }
+        drop: { backend: { type: Provider } }
+      select:
+      - { type: Provider,
+          order: [ mock-provider ] }
+      - { type: Local,
+          minimize: PredictedTTFT }
+      onEmpty: Reject   # fail closed

@@ -1,0 +1,12 @@
+# Baseline for the routing and noisy-neighbour tests: KV-cache-aware routing
+# across the local workers, never the provider.
+apiVersion: kinference.buoyant.io/v1alpha1
+kind: InferencePolicy
+metadata:
+  name: active
+spec:
+  rules:
+    - name: local-only
+      route:
+        select:
+          - { type: Local, minimize: PredictedTTFT }

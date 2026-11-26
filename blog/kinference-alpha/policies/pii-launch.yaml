@@ -1,0 +1,21 @@
+# The launch example, as published on the vLLM blog and kinference.ai on
+# 4th November 2026. Only two things differ: the name is `active`, the policy
+# the test pool points at, and the provider is the mock instead of Databricks.
+apiVersion: kinference.buoyant.io/v1alpha1
+kind: InferencePolicy
+metadata:
+  name: active
+spec:
+  rules:
+  - name: serve
+    route:
+      exclude:
+      - name: pii-never-leaves-cluster
+        if:   { tag: pii-detected }
+        drop: { backend: { type: Provider } }
+      select:
+      - { type: Provider,
+          order: [ mock-provider ] }
+      - { type: Local,
+          minimize: PredictedTTFT }
+      onEmpty: Reject   # fail closed

@@ -1,0 +1,104 @@
+{{- $cpu := eq .Values.workers "kind" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm
+spec:
+  selector: { app: vllm }
+  ports:
+    - { name: http, port: 8000, targetPort: 8000 }
+    - { name: kv-pub, port: 5557, targetPort: 5557 }
+    - { name: kv-replay, port: 5558, targetPort: 5558 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+spec:
+  replicas: {{ .Values.replicas | default 1 }}
+  # Two engines starting at once run the node out of memory.
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app: vllm }
+  template:
+    metadata:
+      labels: { app: vllm }
+    spec:
+      # A Service named vllm injects VLLM_PORT=tcp://..., which vLLM reads as its own setting.
+      enableServiceLinks: false
+      {{- if not $cpu }}
+      # Tolerate whatever taint the GPU pool carries; the nodeSelector does the placing.
+      tolerations:
+        - { operator: Exists, effect: NoSchedule }
+      nodeSelector:
+        {{- toYaml .Values.gpuNodeSelector | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: vllm
+          {{- if $cpu }}
+          # The CPU build [K]inference's own e2e test uses, pinned by digest.
+          image: mekayelanik/vllm-cpu@sha256:fd2862489fe516b00df7af3ee6ca257628ad99b334e7d411a261452ef2f98aa2
+          {{- else }}
+          image: {{ .Values.gpuImage }}
+          {{- end }}
+          command: ["vllm", "serve"]
+          args:
+            - {{ .Values.model }}
+            - --host=0.0.0.0
+            - --port=8000
+            - --enable-prefix-caching
+            {{- if $cpu }}
+            - --load-format=dummy
+            - --enforce-eager
+            - --max-model-len=4096
+            - --max-num-seqs=8
+            # On CPU this is the share of host RAM vLLM reserves.
+            - --gpu-memory-utilization=0.1
+            {{- else }}
+            {{- range .Values.gpuArgs }}
+            - {{ . }}
+            {{- end }}
+            {{- end }}
+            - >-
+              --kv-events-config={"enable_kv_cache_events":true,"publisher":"zmq","endpoint":"tcp://*:5557","replay_endpoint":"tcp://*:5558","topic":"kv@$(POD_IP):$(POD_PORT)@{{ .Values.model }}"}
+          env:
+            - name: POD_IP
+              valueFrom: { fieldRef: { fieldPath: status.podIP } }
+            - { name: POD_PORT, value: "5557" }
+            - { name: VLLM_SERVER_DEV_MODE, value: "1" }
+            - { name: HOME, value: /tmp }
+            - { name: HF_HOME, value: /hf-cache }
+          ports:
+            - { containerPort: 8000, name: http }
+          # vLLM's shared-memory ring buffer outgrows the 64 MiB container default.
+          volumeMounts:
+            - { name: shm, mountPath: /dev/shm }
+            {{- if not $cpu }}
+            - { name: hf-cache, mountPath: /hf-cache }
+            {{- end }}
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 5
+          {{- if not $cpu }}
+          resources:
+            limits: { nvidia.com/gpu: 1 }
+          {{- end }}
+      volumes:
+        - name: shm
+          emptyDir: { medium: Memory, sizeLimit: 2Gi }
+        {{- if not $cpu }}
+        # Node-local model cache, so a restart between test arms skips the download.
+        - name: hf-cache
+          hostPath: { path: /var/lib/hf-cache, type: DirectoryOrCreate }
+        {{- end }}
+---
+apiVersion: kinference.buoyant.io/v1alpha1
+kind: InferenceWorkerSet
+metadata:
+  name: vllm
+spec:
+  profile: default
+  serviceRef: { name: vllm, port: http }
+  kvEvents: { port: kv-pub }
+  models:
+    - { name: {{ .Values.model }}, aliases: [chat] }

@@ -1,0 +1,4 @@
+apiVersion: v2
+name: kinference-demo
+description: Gateway, vLLM workers, mock provider, pool, and route for the [K]inference demos
+version: 0.1.0

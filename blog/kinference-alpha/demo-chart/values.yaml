@@ -1,0 +1,7 @@
+# Defaults are for a local kind cluster: one vLLM worker on the CPU build,
+# with dummy weights. values-eks.yaml switches to real models on GPUs.
+
+# kind | gpu
+workers: kind
+model: HuggingFaceTB/SmolLM2-135M-Instruct
+replicas: 1

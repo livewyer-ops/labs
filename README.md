@@ -16,6 +16,7 @@ At [LiveWyer](https://livewyer.io), we believe that solving complex challenges s
   - [Kubernetes Vertical Pod Autoscaler](#kubernetes-vertical-pod-autoscaler)
   - [Kubernetes Autoscaling with Datadog](#kubernetes-autoscaling-with-datadog)
 - [livewyer.io Blog posts](#livewyerio-blog-posts)
+  - [[K]inference](#kinference)
   - [Istio vs Linkerd vs Cilium](#istio-vs-linkerd-vs-cilium)
   - [Is Istio Ambient worth it?](#is-istio-ambient-worth-it)
   - [LitmusChaos](#litmuschaos)
@@ -82,6 +83,12 @@ A three-part series on scaling Kubernetes workloads with Datadog metrics. The se
 ## livewyer.io Blog posts
 
 These posts are carefully curated to provide practical examples and insights into the topics we explored. Whether you're looking for inspiration, learning, or contributing, this list serves as a hub for developers to dive deeper into the ideas and technologies covered in our writings.
+
+### [K]inference
+
+(2026) Test [K]inference, an inference control plane for vLLM, as a shared GPU platform: KV-cache-aware routing, a PII residency policy, a noisy neighbour, and a restart under load.
+
+[[Blog]](https://livewyer.io/blog/kinference-puts-inference-policy-in-yaml-but-who-writes-it/) | [[Code]](./blog/kinference-alpha/)
 
 ### Istio vs Linkerd vs Cilium
 

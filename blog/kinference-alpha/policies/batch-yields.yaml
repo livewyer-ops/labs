@@ -1,0 +1,25 @@
+# Rate limiting is not in the alpha, so this is the nearest policy tool: the
+# batch tenant may only use a worker that is not already busy, and is
+# rejected otherwise. Everyone else gets plain KV-cache-aware routing.
+apiVersion: kinference.buoyant.io/v1alpha1
+kind: InferencePolicy
+metadata:
+  name: active
+spec:
+  rules:
+    - name: batch-yields-when-busy
+      matches:
+        - { tenant: batch }
+      route:
+        exclude:
+          - name: skip-busy-workers
+            drop: { backend: { type: Local }, queuedPrompts: { greaterThan: 1 } }
+          - name: skip-full-caches
+            drop: { backend: { type: Local }, kvCacheUsage: { greaterThan: 0.6 } }
+        select:
+          - { type: Local, minimize: PredictedTTFT }
+        onEmpty: Reject
+    - name: everyone-else
+      route:
+        select:
+          - { type: Local, minimize: PredictedTTFT }
