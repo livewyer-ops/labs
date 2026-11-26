@@ -1,17 +1,21 @@
-# The launch example: serve locally, fall back to the provider, never send
-# anything tagged as personal data off the cluster.
+# The launch example, as published on the vLLM blog and kinference.ai on
+# 4th November 2026. Only two things differ: the name is `active`, the policy
+# the test pool points at, and the provider is the mock instead of Databricks.
 apiVersion: kinference.buoyant.io/v1alpha1
 kind: InferencePolicy
 metadata:
   name: active
 spec:
   rules:
-    - name: local-first-then-provider-unless-pii
-      route:
-        exclude:
-          - name: ensure-pii-never-leaves-cluster
-            if: { tag: [pii-confirmed, pii-unknown] }
-            drop: { backend: { type: Provider } }
-        select:
-          - { type: Local, minimize: PredictedTTFT }
-          - { type: Provider, order: [mock-provider] }
+  - name: serve
+    route:
+      exclude:
+      - name: pii-never-leaves-cluster
+        if:   { tag: pii-detected }
+        drop: { backend: { type: Provider } }
+      select:
+      - { type: Provider,
+          order: [ mock-provider ] }
+      - { type: Local,
+          minimize: PredictedTTFT }
+      onEmpty: Reject   # fail closed

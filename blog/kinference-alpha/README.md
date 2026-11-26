@@ -101,7 +101,7 @@ Demo 1 applies the "keep personal data on the cluster" policy from [K]inference'
     kubectl get infpol active
     ```
 
-3. Scale the local workers to zero, so the policy has to choose between rejecting the request and sending it to the provider:
+3. Scale the local workers to zero, so that in step 6 the only choice left is between rejecting the request and sending it to the provider:
 
     ```bash
     kubectl scale deploy/vllm --replicas=0
@@ -124,7 +124,7 @@ Demo 1 applies the "keep personal data on the cluster" policy from [K]inference'
 
 7. Scale the workers back up with `kubectl scale deploy/vllm --replicas=1`.
 
-**What we saw:** the request came back from the mock provider with a 200, and the provider's log held the full prompt and the `x-tenant` header. The NHS number is only a marker. [K]inference has no way of knowing it is personal data, because nothing in `0.1.0-alpha.8` sets tags on requests, so the `pii-confirmed` and `pii-unknown` exclusion never matches any request. With the fail-closed policy, which needs a `pii-cleared` tag before a request may leave, the same request came back as a 403, with "every candidate was excluded".
+**What we saw:** the request came back from the mock provider with a 200, and the provider's log held the full prompt and the `x-tenant` header. The NHS number is only a marker. [K]inference has no way of knowing it is personal data, because nothing in `0.1.0-alpha.8` sets tags on requests, so the `pii-detected` exclusion never matches any request. The launch policy lists the provider before the local workers, so the request goes to the provider even with a local worker up; skip step 3 to see that. `onEmpty: Reject` does not stop it, because it only applies once every backend has been excluded. With the fail-closed policy, which needs a `pii-cleared` tag before a request may leave, the same request came back as a 403, with "every candidate was excluded".
 
 ## Demo 2 - [K]inference Against a Plain Service
 
