@@ -1,0 +1,40 @@
+# EKS cluster for Demos 2 to 4. One CPU node for the gateway, [K]inference, the
+# mock provider and the load generator; three A10G GPU nodes for vLLM.
+# Check `aws sts get-caller-identity` shows the account you mean to bill first.
+# `eksctl delete cluster -f clusters/eks.yaml` removes all of it.
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: kinference-demo
+  region: eu-west-1
+  # Latest EKS release at the time of the test.
+  version: "1.37"
+  tags:
+    purpose: kinference-blog-test
+
+# EKS needs two zones for its control plane; every node sits in eu-west-1a,
+# so traffic between them stays in one zone.
+availabilityZones: [eu-west-1a, eu-west-1b]
+
+managedNodeGroups:
+  - name: system
+    instanceType: m6i.xlarge
+    desiredCapacity: 1
+    availabilityZones: [eu-west-1a]
+    volumeSize: 50
+    disablePodIMDS: true
+
+  - name: gpu
+    instanceType: g5.xlarge
+    desiredCapacity: 3
+    availabilityZones: [eu-west-1a]
+    # Room for the vLLM image and the model cache.
+    volumeSize: 150
+    disablePodIMDS: true
+    labels:
+      pool: gpu
+    taints:
+      - key: nvidia.com/gpu
+        value: "true"
+        effect: NoSchedule

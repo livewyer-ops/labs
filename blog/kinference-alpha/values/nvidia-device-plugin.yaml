@@ -1,0 +1,6 @@
+# EKS only. eksctl adds its own device plugin once a whole node group is
+# ready, which a g5 capacity shortage can delay, so install it directly on the
+# GPU nodes instead of relying on Node Feature Discovery labels.
+affinity: null
+nodeSelector:
+  pool: gpu

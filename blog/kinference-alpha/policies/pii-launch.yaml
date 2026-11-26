@@ -1,0 +1,17 @@
+# The launch example: serve locally, fall back to the provider, never send
+# anything tagged as personal data off the cluster.
+apiVersion: kinference.buoyant.io/v1alpha1
+kind: InferencePolicy
+metadata:
+  name: active
+spec:
+  rules:
+    - name: local-first-then-provider-unless-pii
+      route:
+        exclude:
+          - name: ensure-pii-never-leaves-cluster
+            if: { tag: [pii-confirmed, pii-unknown] }
+            drop: { backend: { type: Provider } }
+        select:
+          - { type: Local, minimize: PredictedTTFT }
+          - { type: Provider, order: [mock-provider] }

@@ -1,0 +1,15 @@
+# Puts [K]inference in the gateway's request path, and reads the tenant from
+# the x-tenant request header.
+extension:
+  enabled: true
+  tenantHeader: x-tenant
+
+# The chart defaults to "render" tokenisation, which asks vLLM's /render
+# routes for token IDs. vLLM 0.31.0 has no such routes (404), and [K]inference
+# then picks workers on load alone, with only a WARN log to say so. "local"
+# tokenises in process with the model's tokenizer from Hugging Face.
+config:
+  profiles:
+    default:
+      tokenize:
+        mode: local

@@ -1,0 +1,17 @@
+# Fail closed: a request may leave the cluster only when it carries a tag
+# saying it may. With no classifier setting tags, nothing leaves.
+apiVersion: kinference.buoyant.io/v1alpha1
+kind: InferencePolicy
+metadata:
+  name: active
+spec:
+  rules:
+    - name: local-first-provider-only-when-cleared
+      route:
+        exclude:
+          - name: provider-needs-clearance
+            if: { tag: { not: pii-cleared } }
+            drop: { backend: { type: Provider } }
+        select:
+          - { type: Local, minimize: PredictedTTFT }
+          - { type: Provider, order: [mock-provider] }
